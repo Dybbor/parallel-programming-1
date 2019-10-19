@@ -113,12 +113,12 @@ int main(int argc, char ** argv)
 		if (cols < size) //Если колонок меньше чем процессов, не задействовать все процессы, а столько сколько нужно
 			size = cols;
 		vec = InitMatrix(rows, cols); //инциализируется матрица в виде вектора рандомно
+		PrintMatrix(vec, rows, cols);
 		Tranpose(vec, rows, cols); //Транспонирование матрицы (переделывание вектора)
 		block = cols / size; //в блоке n-ое кол во столбцов
 		left = cols % size;  //остаточные столбцы которые не попадут на процессы
 		tmp = new int[rows*block];	// промежуточный массив для частей вектора
 		local_max = new int[block];
-		PrintMatrix(vec, rows, cols);
 
 		//Linear algorithm
 		resl = new int[cols];	// массив в котором будут хранится максимальные значения линейного алгоритма
@@ -172,14 +172,14 @@ int main(int argc, char ** argv)
 			int c = 0; //Смещение
 			for (int i = 0; i < left; i++)
 			{
-				int max = vec[rows*size + c];
+				int max = vec[rows*size*block + c];
 				for (int j = 1; j < rows; j++)
 				{
-					if (vec[j + rows * size + c] > max)
-						max = vec[j + rows * size + c];
+					if (vec[j + rows * size * block + c] > max)
+						max = vec[j + rows * size *block + c];
 				}
 				c += rows;
-				resp[i + size] = max;
+				resp[i + size*block] = max;
 			}
 		}
 	end_pp = MPI_Wtime();
@@ -194,7 +194,7 @@ int main(int argc, char ** argv)
 	}
 	delete[]vec;
 	delete[]resl;
-	delete[]resp;
+	//delete[]resp;
 	delete[] tmp;
 	delete[] local_max;
 	MPI_Finalize();
