@@ -17,8 +17,11 @@ int* InitMatrix(int rows, int cols)
 }
 void PrintVector(int *x, int size)
 {
-	for (int i = 0; i < size; i++)
-		cout << x[i] << "  ";
+	if (size < 50)
+		for (int i = 0; i < size; i++)
+			cout << x[i] << "  ";
+	else
+		cout << "Vector too large" << endl;
 }
 void PrintInfo(int rank, int size, int block, int rows, int cols, int *tmp, int *local_max)
 {
@@ -41,7 +44,7 @@ void PrintMatrix(int *vec, int rows, int cols)
 		cout << endl;
 	}
 	else
-		cout << "Matrix too big" << endl;
+		cout << "Matrix too large" << endl;
 }
 void Tranpose(int* vec, int rows, int cols)
 {
@@ -106,20 +109,36 @@ int main(int argc, char ** argv)
 			else
 				break;
 		}
+		//Initialize
 		if (cols < size) //Если колонок меньше чем процессов, не задействовать все процессы, а столько сколько нужно
 			size = cols;
 		vec = InitMatrix(rows, cols); //инциализируется матрица в виде вектора рандомно
+		Tranpose(vec, rows, cols); //Транспонирование матрицы (переделывание вектора)
 		block = cols / size; //в блоке n-ое кол во столбцов
 		left = cols % size;  //остаточные столбцы которые не попадут на процессы
 		tmp = new int[rows*block];	// промежуточный массив для частей вектора
 		local_max = new int[block];
-		resl = new int[cols];	// массив в котором будут хранится максимальные значения
-		//resp = new int[cols];	// массив в котором будут хранится максимальные значения
-		/*resp = new vector <int>();
-		resp->resize(cols);*/
 		PrintMatrix(vec, rows, cols);
-		Tranpose(vec, rows, cols); //Транспонирование матрицы (переделывание вектора)
+
+		//Linear algorithm
+		resl = new int[cols];	// массив в котором будут хранится максимальные значения линейного алгоритма
+		start_linear = MPI_Wtime();
+		int max = vec[0];
+		int k = 0;
+		for (int i = 1; i < rows*cols; i++)
+		{
+			if (max < vec[i])
+				max = vec[i];
+			if (i % rows == rows - 1) {
+				resl[k] = max;
+				k++;
+				max = vec[++i];
+			}
+		}
+		end_linear = MPI_Wtime();
 	}
+	//parellel algorithm
+	start_pp = MPI_Wtime();
 	MPI_Bcast(&size, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(&block, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(&rows, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -128,9 +147,6 @@ int main(int argc, char ** argv)
 	if (rank > 0)
 	{
 		tmp = new int[rows*block];	// промежуточный массив для частей вектора
-		//resp = new int[cols];	// массив в котором будут хранится максимальные значения
-		/*resp = new vector <int>();
-		resp->resize(cols);*/
 		local_max = new int[block];
 	}
 	MPI_Scatter(vec, rows*block, MPI_INT, tmp, rows*block, MPI_INT, 0, MPI_COMM_WORLD);
@@ -147,16 +163,12 @@ int main(int argc, char ** argv)
 		c += rows;
 		local_max[i] = max;
 	}
-	PrintInfo(rank, size, block, rows, cols, tmp, local_max);
-
 	MPI_Gather(local_max, block, MPI_INT, resp, block, MPI_INT, 0, MPI_COMM_WORLD);
-	if (rank == 0)
-		for (int i = 0; i < cols; i++)
-			cout << " max vector" << resp[i] << " ";
 	//Считаются столбцы которые не попали на процессы
 	if (rank == 0)
 		if (left != 0)
 		{
+			cout << "i am in left" << endl;
 			int c = 0; //Смещение
 			for (int i = 0; i < left; i++)
 			{
@@ -170,20 +182,20 @@ int main(int argc, char ** argv)
 				resp[i + size] = max;
 			}
 		}
-	if (rank == 0)
+	end_pp = MPI_Wtime();
+	if (rank == 0) 
 	{
-		cout << "\nafter" << endl;
-		for (int i = 0; i < cols; i++)
-			cout << " max vector" << resp[i] << " ";
+		PrintVector(resl,cols);
+		cout << endl;
+		PrintVector(resp, cols);
+		cout << endl;
+		cout << "time linear  " << (end_linear - start_linear) * 1000 << endl;
+		cout << "time parallel  " << (end_pp - start_pp) * 1000 << endl;
 	}
-	//MPI_Barrier(MPI_COMM_WORLD);
-
-	/*cout << "Process " << rank << endl;
-	cout << " Size " << size << endl;
-	cout << "Block " << block;*/
 	delete[]vec;
 	delete[]resl;
-	//delete[]resp;
-
+	delete[]resp;
+	delete[] tmp;
+	delete[] local_max;
 	MPI_Finalize();
 }
