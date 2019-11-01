@@ -4,9 +4,9 @@
 
 using namespace std;
 
-int* InitMatrix(int rows, int cols)
+double* InitMatrix(int rows, int cols)
 {
-	int* vec = new int[rows*cols];
+	double* vec = new double[rows*cols];
 	if (rows < 2 && cols < 2)
 		for (int i = 0; i < rows*cols; i++)
 			cin >> vec[i];
@@ -15,7 +15,7 @@ int* InitMatrix(int rows, int cols)
 			vec[i] = rand() % 10000;
 	return vec;
 }
-void PrintVector(int *x, int size)
+void PrintVector(double *x, int size)
 {
 	if (size < 50)
 		for (int i = 0; i < size; i++)
@@ -23,16 +23,16 @@ void PrintVector(int *x, int size)
 	else
 		cout << "Vector too large" << endl;
 }
-void PrintInfo(int rank, int size, int block, int rows, int cols, int *tmp, int *local_max)
-{
-	cout << "\nInformation\nProcess " << rank << "\n" << "Size " << size << "\n" << "block " << block << "\n" << "rows " << rows << "\n" << "cols " << cols << endl;
-
-	for (int i = 0; i < rows*block; i++)
-		cout << " tmp " << rank << " " << tmp[i] << " ";
-	for (int i = 0; i < block; i++)
-		cout << "local max " << rank << " " << local_max[i] << " ";
-}
-void PrintMatrix(int *vec, int rows, int cols)
+//void PrintInfo(int rank, int size, int block, int rows, int cols, int *tmp, int *local_max)
+//{
+//	cout << "\nInformation\nProcess " << rank << "\n" << "Size " << size << "\n" << "block " << block << "\n" << "rows " << rows << "\n" << "cols " << cols << endl;
+//
+//	for (int i = 0; i < rows*block; i++)
+//		cout << " tmp " << rank << " " << tmp[i] << " ";
+//	for (int i = 0; i < block; i++)
+//		cout << "local max " << rank << " " << local_max[i] << " ";
+//}
+void PrintMatrix(double *vec, int rows, int cols)
 {
 	if (rows < 100 && cols < 100) {
 		cout << vec[0] << setw(2) << "  ";
@@ -46,9 +46,9 @@ void PrintMatrix(int *vec, int rows, int cols)
 	else
 		cout << "Matrix too large" << endl;
 }
-void Tranpose(int* vec, int rows, int cols)
+void Tranpose(double* vec, int rows, int cols)
 {
-	int* copy = new int[rows*cols];
+	double* copy = new double[rows*cols];
 	for (int i = 0; i < rows*cols; i++)
 		copy[i] = vec[i];
 	int ind = 0;
@@ -63,16 +63,16 @@ void Tranpose(int* vec, int rows, int cols)
 	delete[] copy;
 }
 
-void Max(int *mas, int *res, int cols, int pos)
-{
-	int max = mas[0];
-	for (int i = 1; i < cols; i++)
-	{
-		if (max < mas[i])
-			max = mas[i];
-	}
-	res[pos] = max;
-}
+//void Max(int *mas, int *res, int cols, int pos)
+//{
+//	int max = mas[0];
+//	for (int i = 1; i < cols; i++)
+//	{
+//		if (max < mas[i])
+//			max = mas[i];
+//	}
+//	res[pos] = max;
+//}
 
 int main(int argc, char ** argv)
 {
@@ -81,11 +81,11 @@ int main(int argc, char ** argv)
 	int rows, cols; //строкиб колонки
 	double start_linear = 0, end_linear = 0,
 		start_pp = 0, end_pp = 0;
-	int* vec = NULL; //Матрица в виде вектора
-	int* resl = NULL; //Результирующий вектор максимумов для последовательного
-	int *resp;//=NULL; //= NULL; //Результирующий вектор максимумов для параллейного
-	int *tmp = NULL; //Локальный массив для блока
-	int *local_max = NULL; //здесь будут храниться локальные максимумы
+	double* vec = NULL; //Матрица в виде вектора
+	double* resl = NULL; //Результирующий вектор максимумов для последовательного
+	double *resp;//=NULL; //= NULL; //Результирующий вектор максимумов для параллейного
+	double *tmp = NULL; //Локальный массив для блока
+	double *local_max = NULL; //здесь будут храниться локальные максимумы
 	int block; //Количество столбцов в блоке
 	int left; //Остаточные блоки 
 	MPI_Init(&argc, &argv);
@@ -117,11 +117,11 @@ int main(int argc, char ** argv)
 		Tranpose(vec, rows, cols); //Транспонирование матрицы (переделывание вектора)
 		block = cols / size; //в блоке n-ое кол во столбцов
 		left = cols % size;  //остаточные столбцы которые не попадут на процессы
-		tmp = new int[rows*block];	// промежуточный массив для частей вектора
-		local_max = new int[block];
+		tmp = new double[rows*block];	// промежуточный массив для частей вектора
+		local_max = new double[block];
 
 		//Linear algorithm
-		resl = new int[cols];	// массив в котором будут хранится максимальные значения линейного алгоритма
+		resl = new double[cols];	// массив в котором будут хранится максимальные значения линейного алгоритма
 		start_linear = MPI_Wtime();
 		int max = vec[0];
 		int k = 0;
@@ -143,13 +143,13 @@ int main(int argc, char ** argv)
 	MPI_Bcast(&block, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(&rows, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(&cols, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	resp = new int[cols];	// массив в котором будут хранится максимальные значения
+	resp = new double[cols];	// массив в котором будут хранится максимальные значения
 	if (rank > 0)
 	{
-		tmp = new int[rows*block];	// промежуточный массив для частей вектора
-		local_max = new int[block];
+		tmp = new double[rows*block];	// промежуточный массив для частей вектора
+		local_max = new double[block];
 	}
-	MPI_Scatter(vec, rows*block, MPI_INT, tmp, rows*block, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Scatter(vec, rows*block, MPI_DOUBLE, tmp, rows*block, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	//Поиск максимума по столбцам и занесение его в массив локальных сумм
 	int c = 0; //Смещение
 	for (int i = 0; i < block; i++)
@@ -163,7 +163,7 @@ int main(int argc, char ** argv)
 		c += rows;
 		local_max[i] = max;
 	}
-	MPI_Gather(local_max, block, MPI_INT, resp, block, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Gather(local_max, block, MPI_DOUBLE, resp, block, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	//Считаются столбцы которые не попали на процессы
 	if (rank == 0)
 		if (left != 0)
