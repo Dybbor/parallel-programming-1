@@ -83,7 +83,7 @@ int main(int argc, char**argv)
 		std::queue <int> q_readers,q_writers;
 		bool waitingWriter = false;
 		int numb = 0;
-		for (int i = 0; i < (size-1)*k*2/*12*/; i++) 
+		for (int i = 0; i < (size-4)*k*2 +14/*12*/; i++) 
 		{
 			MPI_Status status;
 			Request request;
@@ -176,7 +176,7 @@ int main(int argc, char**argv)
 			}
 		}
 	}
-	/*if (rank == 1) 
+	if (rank == 1) 
 	{
 		RunReader(rank, 2000);
 		RunWriter(rank, 1000);
@@ -193,15 +193,15 @@ int main(int argc, char**argv)
 		RunWriter(rank, 200);
 		RunWriter(rank, 1000);
 		RunReader(rank, 500);
-	}*/
-	if (rank % 2 ==0 && rank!=0)
+	}
+	if (rank>3 && rank % 2 ==0 && rank!=0)
 	{
 		for (int i = 0; i < k; i++) 
 		{
 			RunReader(rank);
 		}
 	}
-	if (rank % 2 == 1) 
+	if (rank>3 && rank % 2 == 1) 
 	{
 		for (int i = 0; i < k; i++) 
 		{
