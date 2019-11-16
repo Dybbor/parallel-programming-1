@@ -3,10 +3,16 @@
 #include <queue>
 #include <windows.h>
 
+
+
+
 const int READER_OPEN = 0;
 const int READER_CLOSE = 1;
 const int WRITER_OPEN = 2;
 const int WRITER_CLOSE = 3;
+
+
+const int EMPTY = -1;
 
 const int RESPONSE_READER_YES = 4;
 const int RESPONSE_READER_WAIT = 5;
@@ -18,6 +24,8 @@ struct Request
 {
 	int rank;
 	int step;
+	int buf;
+
 };
 
 void RunReader(int rank,int time=1000) 
@@ -27,21 +35,28 @@ void RunReader(int rank,int time=1000)
 	int response;
 	request.rank = rank;
 	request.step = READER_OPEN;
-	MPI_Send(&request, 2, MPI_INT, 0, 1, MPI_COMM_WORLD);
+	MPI_Send(&request, 3, MPI_INT, 0, 1, MPI_COMM_WORLD);
 	MPI_Recv(&response, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
-	if (response == RESPONSE_READER_WAIT)
+	if (response == EMPTY) 
 	{
-		MPI_Recv(&response, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
-		std::cout << "process " << rank << " - reader wait succeed" << std::endl;
+		std::cout << "process " << rank << " - can't read" << std::endl;
 	}
-	std::cout << "process " << rank<< " - reader open succeed" << std::endl;
-	///
-	Sleep(time);
-	//////
-	request.step = READER_CLOSE;
-	MPI_Send(&request, 2, MPI_INT, 0, 1, MPI_COMM_WORLD);
-	MPI_Recv(&response, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
-	std::cout << "process " << rank << " - reader finish" << std::endl;
+	else
+	{
+		if (response == RESPONSE_READER_WAIT)
+		{
+			MPI_Recv(&response, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+			std::cout << "process " << rank << " - reader wait succeed" << std::endl;
+		}
+		std::cout << "process " << rank << " - reader open succeed" << std::endl;
+		///
+		Sleep(time);
+		//////
+		request.step = READER_CLOSE;
+		MPI_Send(&request, 3, MPI_INT, 0, 1, MPI_COMM_WORLD);
+		MPI_Recv(&response, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+		std::cout << "process " << rank << " - reader finish" << std::endl;
+	}
 }
 
 void RunWriter(int rank,int time=1000) 
@@ -51,7 +66,7 @@ void RunWriter(int rank,int time=1000)
 	int response;
 	request.rank = rank;
 	request.step = WRITER_OPEN;
-	MPI_Send(&request, 2, MPI_INT, 0, 1, MPI_COMM_WORLD);
+	MPI_Send(&request, 3, MPI_INT, 0, 1, MPI_COMM_WORLD);
 	MPI_Recv(&response, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
 	if (response == RESPONSE_WRITER_WAIT) 
 	{
@@ -63,7 +78,8 @@ void RunWriter(int rank,int time=1000)
 	Sleep(time);
 	//////
 	request.step = WRITER_CLOSE;
-	MPI_Send(&request, 2, MPI_INT, 0, 1, MPI_COMM_WORLD);
+	request.buf=1;
+	MPI_Send(&request, 3, MPI_INT, 0, 1, MPI_COMM_WORLD);
 	MPI_Recv(&response, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
 	std::cout << "process " << rank << " - write finish" << std::endl;
 }
@@ -76,19 +92,27 @@ int main(int argc, char**argv)
 	MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Status status;
+	if (size < 3) 
+	{
+		std::cout << "Need  minimum 3 process" << std::endl;
+		MPI_Finalize();
+		return -1;
+	}	
 	if (rank == 0)
 	{
+		int buf = 0;
 		int countOfReaders=0;
 		int countOfWriters=0;
 		std::queue <int> q_readers,q_writers;
 		bool waitingWriter = false;
 		int numb = 0;
-		for (int i = 0; i < (size-4)*k*2 +14/*12*/; i++) 
+		for (int i = 0; i < 8/*(size-4)*k*2 +16*//*12*/; i++) 
 		{
 			MPI_Status status;
 			Request request;
-			MPI_Recv(&request, 2, MPI_INT, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, &status);
-			std::cout << "\nSTatus" <<std:: endl;
+			MPI_Recv(&request, 3, MPI_INT, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, &status);
+			std::cout << "\nStatus" <<std:: endl;
+			std::cout << "buf " << buf << std::endl;
 			std::cout << "reader " << countOfReaders << " writer " << countOfWriters << std::endl;
 			std::cout << "wait reader size " << q_readers.size() << "  wait writer size " << q_writers.size() << std::endl;
 			std::cout << "\n\t\t "<<numb<<" NEW REQUEST" << std::endl;
@@ -97,7 +121,13 @@ int main(int argc, char**argv)
 			{
 			case READER_OPEN:
 			{
-				if (countOfWriters == 0)
+				if (buf == 0) 
+				{
+					std::cout << "\t\t  Manager: process " << request.rank << " read - buf empty" << std::endl;
+					MPI_Send(&EMPTY, 1, MPI_INT, request.rank, 0, MPI_COMM_WORLD);
+					
+				}
+				else if (countOfWriters == 0)
 				{
 					countOfReaders++;
 					std::cout << "\t\t  Manager: process " <<request.rank<< " open reader - yes\n" << std::endl;
@@ -147,6 +177,7 @@ int main(int argc, char**argv)
 			case WRITER_CLOSE:
 			{
 				countOfWriters--;
+				buf +=request.buf;
 				std::cout << "\t\t  Manager: process " << request.rank << " close writer - yes\n" << std::endl;
 				MPI_Send(&RESPONSE_WRITER_YES, 1, MPI_INT, request.rank, 0, MPI_COMM_WORLD);
 
@@ -178,13 +209,14 @@ int main(int argc, char**argv)
 	}
 	if (rank == 1) 
 	{
-		RunReader(rank, 2000);
+		RunWriter(rank, 2000);
 		RunWriter(rank, 1000);
 
 	}
 	if (rank == 2) 
 	{
 		RunReader(rank, 500);
+		RunWriter(rank, 200);
 		RunReader(rank, 500);
 		
 	}
