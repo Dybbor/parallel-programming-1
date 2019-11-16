@@ -83,7 +83,7 @@ int main(int argc, char**argv)
 		std::queue <int> q_readers,q_writers;
 		bool waitingWriter = false;
 		int numb = 0;
-		for (int i = 0; i < 12; i++) 
+		for (int i = 0; i < (size-1)*k*2/*12*/; i++) 
 		{
 			MPI_Status status;
 			Request request;
@@ -119,12 +119,12 @@ int main(int argc, char**argv)
 					if (q_writers.size() > 0 && countOfReaders==0) 
 					{
 						std::cout << "\t\t \nQueue writer start\n" << std::endl;
-						for (int i = 0; i < q_writers.size(); i++)
-						{
+						//for (int i = 0; i < q_writers.size(); i++)
+						//{
 							countOfWriters++;
 							MPI_Send(&RESPONSE_WRITER_YES, 1, MPI_INT, q_writers.front(), 0, MPI_COMM_WORLD);
 							q_writers.pop();
-						}
+						//}
 					}
 				break;
 			}
@@ -153,12 +153,12 @@ int main(int argc, char**argv)
 				if (q_writers.size() > 0 && countOfReaders == 0)
 				{
 					std::cout << "\nQueue writer start\n" << std::endl;
-					for (int i = 0; i < q_writers.size(); i++)
-					{
+					//for (int i = 0; i < q_writers.size(); i++)
+					//{
 						countOfWriters++;
 						MPI_Send(&RESPONSE_WRITER_YES, 1, MPI_INT, q_writers.front(), 0, MPI_COMM_WORLD);
 						q_writers.pop();
-					}
+					//}
 				}
 				else if (q_readers.size() > 0)
 				{
@@ -176,23 +176,25 @@ int main(int argc, char**argv)
 			}
 		}
 	}
-	if (rank == 1) 
+	/*if (rank == 1) 
 	{
+		RunReader(rank, 2000);
 		RunWriter(rank, 1000);
-		RunReader(rank, 500);
 
 	}
 	if (rank == 2) 
 	{
-		RunWriter(rank, 1000);
 		RunReader(rank, 500);
+		RunReader(rank, 500);
+		
 	}
 	if (rank == 3)
 	{
+		RunWriter(rank, 200);
+		RunWriter(rank, 1000);
 		RunReader(rank, 500);
-		RunReader(rank, 500);
-	}
-	/*if (rank % 2 ==0 && rank!=0)
+	}*/
+	if (rank % 2 ==0 && rank!=0)
 	{
 		for (int i = 0; i < k; i++) 
 		{
@@ -205,7 +207,7 @@ int main(int argc, char**argv)
 		{
 			RunWriter(rank);
 		}
-	}*/
+	}
 	MPI_Finalize();
 	return 0;
 }
