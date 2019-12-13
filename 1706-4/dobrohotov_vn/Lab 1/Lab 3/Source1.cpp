@@ -1,12 +1,33 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
+#include <mpi.h>
 using namespace cv;
 using namespace std;
-
+#define M_PI 3.14159265358979323846
 Mat filterGauss(Mat image)
 {
 	return image;
 }
+
+double* createKernel(double* kernel, double sigma)
+{
+	double sum = 0;
+	for (int i = -1; i <= 1; i++)
+	{
+		for (int j = -1; j <= 1; j++)
+		{
+			kernel[i + j + 2 * (i + 2)] = (double)(exp(-(i*i + j * j) / (sigma*sigma))) *(1/ (sigma*sqrt(2 * M_PI)));
+			sum += kernel[i + j + 2 * (i + 2)];
+		}
+	}
+	for (int i = -1; i <= 1; i++) {
+		for (int j = -1; j <= 1; j++) {
+			kernel[i + j + 2 * (i + 2)] /= sum;
+		}
+	}
+	return kernel;
+}
+
 Mat duplicateBorder(Mat image) 
 {
 
@@ -38,50 +59,56 @@ Mat duplicateBorder(Mat image)
 }
 int main() 
 {
-	Mat image = imread("D:\\GitProject\\parallel-programming-1\\1706-4\\dobrohotov_vn\\Lab 1\\Picture\\best.jpg");
+	Mat image = imread("D:\\GitProject\\parallel-programming-1\\1706-4\\dobrohotov_vn\\Lab 1\\Picture\\cat.jpg");
 	if (!image.data) {
 		cout << "Error load image" << endl;
 		system("pause");
 		return -1;
 	}
-	int i = 0;
+	double kernel[9] = { 1,2,1,2,4,2,1,2,1 };
+	for (int i = 0; i < 9; ++i)
+		kernel[i] /= 16;
+	/*double *kernel = new double[9];
+	kernel= createKernel(kernel, 10);
+	for (int i = 0; i < 9; i++)
+		cout << kernel[i]<<"  ";*/
 	cvtColor(image, image, COLOR_BGR2GRAY);
-
+//	threshold(image, image, 100, 255, THRESH_BINARY);
 	namedWindow("image", WINDOW_NORMAL);
 	namedWindow("Copy", WINDOW_NORMAL);
-	cout << image.step << endl;
-	double kernel[] = { 1,2,1,2,4,2,1,2,1 };
-	for (int i = 0; i < 9; i++) 
-	{
-		kernel[i] /= 16;
-	}
 	imshow("image", image);
 	Mat new_image=duplicateBorder(image);
-	//for (int i = 0; i < new_image.rows; i++)
-	//{
-	//	for (int j = 0; j < new_image.cols; j++) 
-	//	{
-	//		cout <<(int) new_image.at<uchar>(i, j) << " ";
-	//	}
-	//	cout << endl;
-	//}
+	/*for (int i = 0; i < new_image.rows; i++)
+	{
+		for (int j = 0; j < new_image.cols; j++) 
+		{
+			cout <<(int) new_image.at<uchar>(i, j) << " ";
+		}
+		cout << endl;
+	}*/
 	uchar *data = new_image.data;
 	uchar *res_data = new uchar[image.rows*image.cols];
+	for (int i = 0; i < image.rows*image.cols; i++)
+		res_data[i] = 0;
+
 	int count_res_data=0;
 	int move = 0;
-	for (int i = 0; i < new_image.cols*new_image.rows-move; i++) 
+	cout << new_image.rows*new_image.cols - 2*new_image.cols - 1 << " ind" << endl;
+	for (int i = 0; i < new_image.rows*new_image.cols-2*new_image.cols-1; i++) 
 	{
 		int res = 0;
 		move = 0;
+		//cout << i;
 		int count_kernel=0;
 		for (int j = 0; j < 3; j++) 
 		{
 			for (int k = 0; k < 3; k++)
 			{
+				//cout <<"   "<<(int)new_image.data[i + j + k + move] << " ";
 				res += new_image.data[i + j + k + move] * kernel[count_kernel];
 				count_kernel++;
 			}
-			move += new_image.cols;
+			move += new_image.cols-1;
 		}
 		if (res > 255)
 			res = 255;
@@ -89,8 +116,7 @@ int main()
 			res = 0;
 		res_data[count_res_data] = res;
 		count_res_data++;
-		//if ((i+new_image.cols-3+1)%new_image.cols)
-		if ((i + 1) % image.cols == 0)
+		if ((i + 3) % new_image.cols == 0)
 			i += 2;
 	}
 	Mat res(image.rows, image.cols, CV_8UC1);
