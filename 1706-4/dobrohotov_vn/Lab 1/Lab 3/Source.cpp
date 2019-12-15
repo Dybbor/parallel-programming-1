@@ -86,10 +86,9 @@ uchar*  processImage(uchar* data, int rows, int cols)
 			res = 0;
 		res_data[count_res_data] = res;
 		count_res_data++;
-		cout << "asd" << " " << i << endl; 
+		//cout << "asd" << " " << i << endl; 
 		if ((i + 3) % (cols) == 0)
 			i += 2;
-		
 	}
 	return res_data;
 }
@@ -100,7 +99,8 @@ int main(int argc, char**argv)
 	//Initialize
 	int rank, size;
 	Mat image, copy, res_linear, res_pp;
-	uchar* data = nullptr;
+	uchar* data_linear= nullptr;
+	uchar* data_pp= nullptr;
 	uchar* tmp = nullptr;
 	uchar *local_res = nullptr;
 	double start_linear;
@@ -113,8 +113,11 @@ int main(int argc, char**argv)
 	int left;
 	int rows;
 	int cols;
-	int *count = nullptr;
-	int *displs = nullptr;
+	int *count_sc = nullptr;
+	int *dispels_sc = nullptr;
+	int *count_ga = nullptr;
+	int *displs_ga = nullptr;
+	uchar *tmp_data;
 	int sent_position_row;
 	//Start program
 	MPI_Init(&argc, &argv);
@@ -128,7 +131,7 @@ int main(int argc, char**argv)
 	}
 	if (rank == 0)
 	{
-		image = imread("D:\\GitProject\\parallel-programming-1\\1706-4\\dobrohotov_vn\\Lab 1\\Picture\\test1.jpg");
+		image = imread("D:\\GitProject\\parallel-programming-1\\1706-4\\dobrohotov_vn\\Lab 1\\Picture\\cat.jpg");
 		if (!image.data) {
 			cout << "Error load image" << endl;
 			MPI_Finalize();
@@ -146,15 +149,17 @@ int main(int argc, char**argv)
 			left = image.cols % size;*/
 		rows = image.rows;
 		cols = image.cols;
-		data = new uchar[image.cols*image.rows];
+		data_linear= new uchar[image.cols*image.rows];
+		data_pp = new uchar[image.cols*image.rows];
 		//dublicate
 		start_duplicate = MPI_Wtime();
 		copy = duplicateBorder(image);
 		finish_duplicate = MPI_Wtime();
+		data_pp = copy.data;//copy.clone().data;
 		//linear_algorithm
 		start_linear = MPI_Wtime();
-		data = copy.data;
-		res_linear.data = processImage(data, copy.rows, copy.cols);
+		data_linear= copy.clone().data;
+		res_linear.data = processImage(data_linear, copy.rows, copy.cols);
 		finish_linear = MPI_Wtime();
 		
 	}
@@ -168,42 +173,65 @@ int main(int argc, char**argv)
 			return -1;
 		}
 	MPI_Bcast(&size, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	count = new int[size];
+	count_sc = new int[size];
 
 	if (rank == 0) {
-		displs = new int[size];
-		//count = new int[size];
+		dispels_sc = new int[size];
+		//count_sc = new int[size];
 		sent_position_row = 0;
 		block = rows / size;
 		left = rows % size;
-		//count and right position
+		cout << "block " << block << " left " << left << endl;
+		//count_sc and right position
 		for (int i = 0; i < size; i++)
 		{
-			count[i] = block * (cols + 2) + 2 * (cols + 2);
+			count_sc[i] = block * (cols + 2) + 2 * (cols + 2);
 			if (left > 0)
 			{
-				count[i] += (cols + 2);
+				count_sc[i] += (cols + 2);
 				left--;
 			}
-			displs[i] = sent_position_row;
-			sent_position_row += count[i] - 2 * (cols + 2);
+			dispels_sc[i] = sent_position_row;
+			sent_position_row += count_sc[i] - 2 * (cols + 2);
 		}
 	}
-	MPI_Bcast(count, size, MPI_INT, 0, MPI_COMM_WORLD);
-	MPI_Bcast(&block,1,MPI_INT,0,MPI_COMM_WORLD);
+	MPI_Bcast(count_sc, size, MPI_INT, 0, MPI_COMM_WORLD);
+//	MPI_Bcast(&block,1,MPI_INT,0,MPI_COMM_WORLD);
 	MPI_Bcast(&rows,1,MPI_INT,0,MPI_COMM_WORLD);
 	MPI_Bcast(&cols, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	local_res = new uchar[(count[rank] / (cols + 2) - 2)*cols];
+	local_res = new uchar[(count_sc[rank] / (cols + 2) - 2)*cols];
 	if (rank > 0) 
 	{
-		data = new uchar[rows*cols];
+		data_pp= new uchar[rows*cols];
 	}
-	tmp = new uchar	[count[rank]];
-	MPI_Scatterv(data, count, displs, MPI_UNSIGNED_CHAR, tmp, count[rank], MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+	tmp = new uchar	[count_sc[rank]];
+	MPI_Barrier(MPI_COMM_WORLD);
+	MPI_Scatterv(data_pp, count_sc, dispels_sc, MPI_UNSIGNED_CHAR, tmp, count_sc[rank], MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+	MPI_Barrier(MPI_COMM_WORLD);
 	cout << "i am here" << endl;
-	local_res = processImage(tmp, count[rank] / (cols + 2), cols + 2);
-
-	res_pp.data = data;
+	local_res = processImage(tmp, count_sc[rank] / (cols + 2), cols + 2);
+	tmp_data = new uchar[rows*cols];
+	count_ga = new int[size];
+	displs_ga = new int[size];
+	sent_position_row = 0;
+	if (rank == 0) 
+	{
+		sent_position_row = 0;
+		for (int i = 0; i < size; i++)
+		{
+			count_ga[i] = (count_sc[i] / (cols + 2) - 2)*cols;
+			displs_ga[i] = sent_position_row;
+			sent_position_row += count_ga[i];
+			cout <<i <<" count sc " << count_sc[i] << endl;
+			cout <<i <<" count ga " << count_ga[i] << endl;
+			cout <<i<< " displs " << displs_ga[i] << endl;
+		}
+	}
+	MPI_Bcast(count_ga, size, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Barrier(MPI_COMM_WORLD);
+	MPI_Gatherv(local_res, count_ga[rank], MPI_UNSIGNED_CHAR, res_pp.data, count_ga, displs_ga, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+	MPI_Barrier(MPI_COMM_WORLD);
+	//res_pp.data = tmp_data;
 	finish_pp = MPI_Wtime();
 	if (rank == 0) {
 		namedWindow("Image", WINDOW_NORMAL);
@@ -220,6 +248,7 @@ int main(int argc, char**argv)
 		waitKey();
 	}
 	delete[] tmp;
+	delete[] local_res;
 	MPI_Finalize();
 	return 0;
 }
