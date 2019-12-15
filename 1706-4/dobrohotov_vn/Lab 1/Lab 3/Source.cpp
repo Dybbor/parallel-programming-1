@@ -64,6 +64,8 @@ uchar*  processImage(uchar* data, int rows, int cols)
 		kernel[i] /= 16;
 	int count_res_data = 0;
 	int move = 0;
+	cout << "i am here" << endl;
+	cout << rows << "x" << cols << endl;
 	//cout << (rows)*(cols)-2 * (cols)-1 << " ind" << endl;
 	for (int i = 0; i < ((rows)*(cols)-2 * (cols)-1); i++)
 	{
@@ -90,6 +92,7 @@ uchar*  processImage(uchar* data, int rows, int cols)
 		//cout << "asd" << " " << i << endl; 
 		if ((i + 3) % (cols) == 0)
 			i += 2;
+		//cout << "i " << i << endl;
 	}
 	return res_data;
 }
@@ -160,7 +163,7 @@ int main(int argc, char**argv)
 		//linear_algorithm
 		start_linear = MPI_Wtime();
 		data_linear= copy.clone().data;
-		res_linear.data = processImage(data_linear, copy.rows, copy.cols);
+		//res_linear.data = processImage(data_linear, copy.rows, copy.cols);
 		finish_linear = MPI_Wtime();
 		
 	}
@@ -208,7 +211,7 @@ int main(int argc, char**argv)
 	tmp = new uchar	[count_sc[rank]];
 	//MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Scatterv(data_pp, count_sc, dispels_sc, MPI_UNSIGNED_CHAR, tmp, count_sc[rank], MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-	MPI_Barrier(MPI_COMM_WORLD);
+	//MPI_Barrier(MPI_COMM_WORLD);
 	//cout << "i am here" << endl;
 	local_res = processImage(tmp, count_sc[rank] / (cols + 2), cols + 2);
 	cout << rank << "succed" << endl;
