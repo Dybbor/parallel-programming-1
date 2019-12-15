@@ -56,6 +56,7 @@ Mat duplicateBorder(Mat image)
 }
 uchar*  processImage(uchar* data, int rows, int cols)
 {
+	cout << "I am in func" << endl;
 	uchar *res_data = new uchar[(rows - 2)*(cols - 2)];
 	double kernel[9] = { 1,2,1,2,4,2,1,2,1 };
 	//normirovvka intensity
@@ -117,7 +118,7 @@ int main(int argc, char**argv)
 	int *dispels_sc = nullptr;
 	int *count_ga = nullptr;
 	int *displs_ga = nullptr;
-	uchar *tmp_data;
+	
 	int sent_position_row;
 	//Start program
 	MPI_Init(&argc, &argv);
@@ -131,7 +132,7 @@ int main(int argc, char**argv)
 	}
 	if (rank == 0)
 	{
-		image = imread("D:\\GitProject\\parallel-programming-1\\1706-4\\dobrohotov_vn\\Lab 1\\Picture\\cat.jpg");
+		image = imread("D:\\GitProject\\parallel-programming-1\\1706-4\\dobrohotov_vn\\Lab 1\\Picture\\red.jpg");
 		if (!image.data) {
 			cout << "Error load image" << endl;
 			MPI_Finalize();
@@ -200,38 +201,37 @@ int main(int argc, char**argv)
 	MPI_Bcast(&rows,1,MPI_INT,0,MPI_COMM_WORLD);
 	MPI_Bcast(&cols, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	local_res = new uchar[(count_sc[rank] / (cols + 2) - 2)*cols];
-	if (rank > 0) 
-	{
-		data_pp= new uchar[rows*cols];
-	}
+	//if (rank > 0) 
+	//{
+	//	data_pp= new uchar[rows*cols];
+	//}
 	tmp = new uchar	[count_sc[rank]];
-	MPI_Barrier(MPI_COMM_WORLD);
+	//MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Scatterv(data_pp, count_sc, dispels_sc, MPI_UNSIGNED_CHAR, tmp, count_sc[rank], MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 	MPI_Barrier(MPI_COMM_WORLD);
-	cout << "i am here" << endl;
+	//cout << "i am here" << endl;
 	local_res = processImage(tmp, count_sc[rank] / (cols + 2), cols + 2);
-	tmp_data = new uchar[rows*cols];
+	cout << rank << "succed" << endl;
 	count_ga = new int[size];
-	displs_ga = new int[size];
 	sent_position_row = 0;
 	if (rank == 0) 
 	{
+		displs_ga = new int[size];
 		sent_position_row = 0;
 		for (int i = 0; i < size; i++)
 		{
 			count_ga[i] = (count_sc[i] / (cols + 2) - 2)*cols;
 			displs_ga[i] = sent_position_row;
 			sent_position_row += count_ga[i];
-			cout <<i <<" count sc " << count_sc[i] << endl;
+			/*cout <<i <<" count sc " << count_sc[i] << endl;
 			cout <<i <<" count ga " << count_ga[i] << endl;
-			cout <<i<< " displs " << displs_ga[i] << endl;
+			cout <<i<< " displs " << displs_ga[i] << endl;*/
 		}
 	}
 	MPI_Bcast(count_ga, size, MPI_INT, 0, MPI_COMM_WORLD);
-	MPI_Barrier(MPI_COMM_WORLD);
+	//MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Gatherv(local_res, count_ga[rank], MPI_UNSIGNED_CHAR, res_pp.data, count_ga, displs_ga, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-	MPI_Barrier(MPI_COMM_WORLD);
-	//res_pp.data = tmp_data;
+	//MPI_Barrier(MPI_COMM_WORLD);
 	finish_pp = MPI_Wtime();
 	if (rank == 0) {
 		namedWindow("Image", WINDOW_NORMAL);
@@ -245,10 +245,16 @@ int main(int argc, char**argv)
 		cout << "dublicate time " << finish_duplicate - start_duplicate << endl;
 		cout << "linear time " << finish_linear - start_linear << endl;
 		cout << "pp time " << finish_pp - start_pp << endl;
-		waitKey();
+		waitKey(); 
+		data_pp = nullptr;
+		data_linear = nullptr;
+		delete[] dispels_sc;
+		delete[]displs_ga;
 	}
 	delete[] tmp;
 	delete[] local_res;
+	delete[] count_sc;
+	delete[] count_ga;
 	MPI_Finalize();
 	return 0;
 }

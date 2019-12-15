@@ -57,13 +57,52 @@
 //
 //	return new_image;
 //}
-//uchar*  processImage(uchar* data,double* kernel, int rows, int cols) 
+////uchar*  processImage(uchar* data,double* kernel, int rows, int cols) 
+////{
+////	uchar *res_data = new uchar[(rows-2)*(cols-2)];
+////	int count_res_data = 0;
+////	int move = 0;
+////	cout << (rows)*(cols) - 2 * (cols) - 1 << " ind" << endl;
+////	for (int i = 0; i < (rows)*(cols) - 2 * (cols) - 1; i++)
+////	{
+////		int res = 0;
+////		move = 0;
+////		//cout << i;
+////		int count_kernel = 0;
+////		for (int j = 0; j < 3; j++)
+////		{
+////			for (int k = 0; k < 3; k++)
+////			{
+////				//cout <<"   "<<(int)new_image.data[i + j + k + move] << " ";
+////				res += data[i + j + k + move] * kernel[count_kernel];
+////				count_kernel++;
+////			}
+////			move += (cols) - 1;
+////		}
+////		if (res > 255)
+////			res = 255;
+////		if (res < 0)
+////			res = 0;
+////		res_data[count_res_data] = res;
+////		count_res_data++;
+////		if ((i + 3) % (cols) == 0)
+////			i += 2;
+////	}
+////	return res_data;
+////}
+//
+//uchar*  processImage(uchar* data, int rows, int cols)
 //{
-//	uchar *res_data = new uchar[(rows-2)*(cols-2)];
+//	cout << "I am in func" << endl;
+//	uchar *res_data = new uchar[(rows - 2)*(cols - 2)];
+//	double kernel[9] = { 1,2,1,2,4,2,1,2,1 };
+//	//normirovvka intensity
+//	for (int i = 0; i < 9; ++i)
+//		kernel[i] /= 16;
 //	int count_res_data = 0;
 //	int move = 0;
-//	cout << (rows)*(cols) - 2 * (cols) - 1 << " ind" << endl;
-//	for (int i = 0; i < (rows)*(cols) - 2 * (cols) - 1; i++)
+//	//cout << (rows)*(cols)-2 * (cols)-1 << " ind" << endl;
+//	for (int i = 0; i < ((rows)*(cols)-2 * (cols)-1); i++)
 //	{
 //		int res = 0;
 //		move = 0;
@@ -77,7 +116,7 @@
 //				res += data[i + j + k + move] * kernel[count_kernel];
 //				count_kernel++;
 //			}
-//			move += (cols) - 1;
+//			move += (cols)-1;
 //		}
 //		if (res > 255)
 //			res = 255;
@@ -85,6 +124,7 @@
 //			res = 0;
 //		res_data[count_res_data] = res;
 //		count_res_data++;
+//		//cout << "asd" << " " << i << endl; 
 //		if ((i + 3) % (cols) == 0)
 //			i += 2;
 //	}
@@ -92,7 +132,7 @@
 //}
 //int main() 
 //{
-//	Mat image = imread("D:\\GitProject\\parallel-programming-1\\1706-4\\dobrohotov_vn\\Lab 1\\Picture\\cat.jpg");
+//	Mat image = imread("D:\\GitProject\\parallel-programming-1\\1706-4\\dobrohotov_vn\\Lab 1\\Picture\\red.jpg");
 //	if (!image.data) {
 //		cout << "Error load image" << endl;
 //		system("pause");
@@ -151,11 +191,11 @@
 //	//}
 //	//Mat res(image.rows, image.cols, CV_8UC1);
 //	Mat res(image.rows, image.cols, CV_8UC1);
-//	res.data = processImage(new_image.data,kernel,new_image.rows,new_image.cols);
+//	res.data = processImage(new_image.data,new_image.rows,new_image.cols);
 //	namedWindow("res", WINDOW_NORMAL);
 //	imshow("Copy", new_image);
 //	imshow("res", res);
 //	waitKey(0);
 //	return 0;
 //}  
-////9232256
+//////9232256
