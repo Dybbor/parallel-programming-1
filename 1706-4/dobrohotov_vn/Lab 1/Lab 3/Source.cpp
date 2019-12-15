@@ -54,9 +54,8 @@ Mat duplicateBorder(Mat image)
 
 	return new_image;
 }
-uchar*  processImage(uchar* data, int rows, int cols)
+inline uchar*  processImage(uchar* data, int rows, int cols)
 {
-	cout << "I am in func" << endl;
 	uchar *res_data = new uchar[(rows - 2)*(cols - 2)];
 	double kernel[9] = { 1,2,1,2,4,2,1,2,1 };
 	//normirovvka intensity
@@ -64,8 +63,6 @@ uchar*  processImage(uchar* data, int rows, int cols)
 		kernel[i] /= 16;
 	int count_res_data = 0;
 	int move = 0;
-	cout << "i am here" << endl;
-	cout << rows << "x" << cols << endl;
 	//cout << (rows)*(cols)-2 * (cols)-1 << " ind" << endl;
 	for (int i = 0; i < ((rows)*(cols)-2 * (cols)-1); i++)
 	{
@@ -102,7 +99,7 @@ int main(int argc, char**argv)
 {
 	//Initialize
 	int rank, size;
-	Mat image, copy, res_linear, res_pp;
+	Mat image, copy, copy1,res_linear, res_pp;
 	uchar* data_linear= nullptr;
 	uchar* data_pp= nullptr;
 	uchar* tmp = nullptr;
@@ -135,11 +132,13 @@ int main(int argc, char**argv)
 	}
 	if (rank == 0)
 	{
-		image = imread("D:\\GitProject\\parallel-programming-1\\1706-4\\dobrohotov_vn\\Lab 1\\Picture\\red.jpg");
+		//image = imread("D:\\GitProject\\parallel-programming-1\\1706-4\\dobrohotov_vn\\Lab 1\\Picture\\red.jpg");
+		image = imread("D:\\GithubProjects\\parallel-programming-1\\1706-4\\dobrohotov_vn\\Lab 1\\Picture\\paint.jpg");
 		if (!image.data) {
 			cout << "Error load image" << endl;
 			MPI_Finalize();
 			return -2;
+
 		}
 		if (image.channels() > 1)
 		{
@@ -159,11 +158,12 @@ int main(int argc, char**argv)
 		start_duplicate = MPI_Wtime();
 		copy = duplicateBorder(image);
 		finish_duplicate = MPI_Wtime();
-		data_pp = copy.data;//copy.clone().data;
+		copy1 = copy.clone();
+		data_pp = copy.data;
 		//linear_algorithm
 		start_linear = MPI_Wtime();
-		data_linear= copy.clone().data;
-		//res_linear.data = processImage(data_linear, copy.rows, copy.cols);
+		data_linear= copy1.data;
+		res_linear.data = processImage(data_linear, copy.rows, copy.cols);
 		finish_linear = MPI_Wtime();
 		
 	}
@@ -214,7 +214,7 @@ int main(int argc, char**argv)
 	//MPI_Barrier(MPI_COMM_WORLD);
 	//cout << "i am here" << endl;
 	local_res = processImage(tmp, count_sc[rank] / (cols + 2), cols + 2);
-	cout << rank << "succed" << endl;
+	cout << "rank " << rank <<" " << count_sc[rank] / (cols + 2) << "x" << cols + 2 << endl;
 	count_ga = new int[size];
 	sent_position_row = 0;
 	if (rank == 0) 
