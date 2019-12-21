@@ -1,6 +1,7 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include "mpi.h"
+#include <string>
 #include <cmath>
 using namespace cv;
 using namespace std;
@@ -29,9 +30,9 @@ Mat duplicateBorder(Mat image)
 {
 
 	Mat new_image(image.rows + 2, image.cols + 2, CV_8UC1);
-	for (int i = 0; i < new_image.rows; i++)
+	/*for (int i = 0; i < new_image.rows; i++)
 		for (int j = 0; j < new_image.cols; j++)
-			new_image.at<uchar>(i, j) = 128;
+			new_image.at<uchar>(i, j) = 128;*/
 	new_image.at<uchar>(0, 0) = image.at<uchar>(0, 0);
 	new_image.at<uchar>(0, new_image.cols - 1) = image.at<uchar>(0, image.cols - 1);
 	new_image.at<uchar>(new_image.rows - 1, 0) = image.at<uchar>(image.rows - 1, 0);
@@ -51,7 +52,6 @@ Mat duplicateBorder(Mat image)
 		{
 			new_image.at<uchar>(i + 1, j + 1) = image.at<uchar>(i, j);
 		}
-
 	return new_image;
 }
 inline uchar*  processImage(uchar* data, int rows, int cols)
@@ -93,7 +93,13 @@ inline uchar*  processImage(uchar* data, int rows, int cols)
 	}
 	return res_data;
 }
-
+bool CheckData(uchar* data1, uchar* data2,int rows,int cols) 
+{
+	for (int i = 0; i < rows*cols; i++)
+		if (data1[i] != data2[i])
+			return false;
+	return true;
+}
 
 int main(int argc, char**argv)
 {
@@ -118,13 +124,19 @@ int main(int argc, char**argv)
 	int *dispels_sc = nullptr;
 	int *count_ga = nullptr;
 	int *displs_ga = nullptr;
-	
 	int sent_position_row;
+	string path="..\\..\\Picture\\";
+	if (argc < 2)
+	{
+		cout << "Please, enter the path to image" << std::endl;
+		return -2;
+	}
+	path += argv[1];
 	//Start program
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
-
+	
 	if (size == 1) {
 		cout << "Need more process then 1" << endl;
 		MPI_Finalize();
@@ -133,10 +145,10 @@ int main(int argc, char**argv)
 	if (rank == 0)
 	{
 		//image = imread("D:\\GitProject\\parallel-programming-1\\1706-4\\dobrohotov_vn\\Lab 1\\Picture\\red.jpg");
-		image = imread("D:\\GithubProjects\\parallel-programming-1\\1706-4\\dobrohotov_vn\\Lab 1\\Picture\\paint.jpg");
+		image = imread(path);
 		if (!image.data) {
 			cout << "Error load image" << endl;
-			MPI_Finalize();
+			MPI_Abort(MPI_COMM_WORLD,-2);
 			return -2;
 
 		}
@@ -201,7 +213,7 @@ int main(int argc, char**argv)
 	}
 	MPI_Bcast(count_sc, size, MPI_INT, 0, MPI_COMM_WORLD);
 //	MPI_Bcast(&block,1,MPI_INT,0,MPI_COMM_WORLD);
-	MPI_Bcast(&rows,1,MPI_INT,0,MPI_COMM_WORLD);
+	//MPI_Bcast(&rows,1,MPI_INT,0,MPI_COMM_WORLD);
 	MPI_Bcast(&cols, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	local_res = new uchar[(count_sc[rank] / (cols + 2) - 2)*cols];
 	//if (rank > 0) 
@@ -245,6 +257,10 @@ int main(int argc, char**argv)
 		imshow("copy", copy);
 		imshow("res linear", res_linear);
 		imshow("res pp", res_pp);
+		if (CheckData(res_linear.data, res_pp.data, image.rows, image.cols))
+			cout << "The algorithm is correct." << endl;
+		else
+			cout << "The algorithm isn't correct." << endl;
 		cout << "dublicate time " << finish_duplicate - start_duplicate << endl;
 		cout << "linear time " << finish_linear - start_linear << endl;
 		cout << "pp time " << finish_pp - start_pp << endl;
