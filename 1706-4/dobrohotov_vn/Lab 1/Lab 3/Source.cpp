@@ -30,9 +30,6 @@ Mat duplicateBorder(Mat image)
 {
 
 	Mat new_image(image.rows + 2, image.cols + 2, CV_8UC1);
-	/*for (int i = 0; i < new_image.rows; i++)
-		for (int j = 0; j < new_image.cols; j++)
-			new_image.at<uchar>(i, j) = 128;*/
 	new_image.at<uchar>(0, 0) = image.at<uchar>(0, 0);
 	new_image.at<uchar>(0, new_image.cols - 1) = image.at<uchar>(0, image.cols - 1);
 	new_image.at<uchar>(new_image.rows - 1, 0) = image.at<uchar>(image.rows - 1, 0);
@@ -63,18 +60,15 @@ inline uchar*  processImage(uchar* data, int rows, int cols)
 		kernel[i] /= 16;
 	int count_res_data = 0;
 	int move = 0;
-	//cout << (rows)*(cols)-2 * (cols)-1 << " ind" << endl;
 	for (int i = 0; i < ((rows)*(cols)-2 * (cols)-1); i++)
 	{
 		int res = 0;
 		move = 0;
-		//cout << i;
 		int count_kernel = 0;
 		for (int j = 0; j < 3; j++)
 		{
 			for (int k = 0; k < 3; k++)
 			{
-				//cout <<"   "<<(int)new_image.data[i + j + k + move] << " ";
 				res += data[i + j + k + move] * kernel[count_kernel];
 				count_kernel++;
 			}
@@ -86,10 +80,8 @@ inline uchar*  processImage(uchar* data, int rows, int cols)
 			res = 0;
 		res_data[count_res_data] = res;
 		count_res_data++;
-		//cout << "asd" << " " << i << endl; 
 		if ((i + 3) % (cols) == 0)
 			i += 2;
-		//cout << "i " << i << endl;
 	}
 	return res_data;
 }
@@ -144,7 +136,6 @@ int main(int argc, char**argv)
 	}
 	if (rank == 0)
 	{
-		//image = imread("D:\\GitProject\\parallel-programming-1\\1706-4\\dobrohotov_vn\\Lab 1\\Picture\\red.jpg");
 		image = imread(path);
 		if (!image.data) {
 			cout << "Error load image" << endl;
@@ -160,8 +151,6 @@ int main(int argc, char**argv)
 		//Initialize image
 		res_linear = image.clone();
 		res_pp = image.clone();
-		/*	block = image.rows / size;
-			left = image.cols % size;*/
 		rows = image.rows;
 		cols = image.cols;
 		data_linear= new uchar[image.cols*image.rows];
@@ -177,7 +166,6 @@ int main(int argc, char**argv)
 		data_linear= copy1.data;
 		res_linear.data = processImage(data_linear, copy.rows, copy.cols);
 		finish_linear = MPI_Wtime();
-		
 	}
 	MPI_Barrier(MPI_COMM_WORLD);
 	start_pp = MPI_Wtime();
@@ -193,11 +181,9 @@ int main(int argc, char**argv)
 
 	if (rank == 0) {
 		dispels_sc = new int[size];
-		//count_sc = new int[size];
 		sent_position_row = 0;
 		block = rows / size;
 		left = rows % size;
-		cout << "block " << block << " left " << left << endl;
 		//count_sc and right position
 		for (int i = 0; i < size; i++)
 		{
@@ -212,21 +198,13 @@ int main(int argc, char**argv)
 		}
 	}
 	MPI_Bcast(count_sc, size, MPI_INT, 0, MPI_COMM_WORLD);
-//	MPI_Bcast(&block,1,MPI_INT,0,MPI_COMM_WORLD);
+	//MPI_Bcast(&block,1,MPI_INT,0,MPI_COMM_WORLD);
 	//MPI_Bcast(&rows,1,MPI_INT,0,MPI_COMM_WORLD);
 	MPI_Bcast(&cols, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	local_res = new uchar[(count_sc[rank] / (cols + 2) - 2)*cols];
-	//if (rank > 0) 
-	//{
-	//	data_pp= new uchar[rows*cols];
-	//}
 	tmp = new uchar	[count_sc[rank]];
-	//MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Scatterv(data_pp, count_sc, dispels_sc, MPI_UNSIGNED_CHAR, tmp, count_sc[rank], MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-	//MPI_Barrier(MPI_COMM_WORLD);
-	//cout << "i am here" << endl;
 	local_res = processImage(tmp, count_sc[rank] / (cols + 2), cols + 2);
-	cout << "rank " << rank <<" " << count_sc[rank] / (cols + 2) << "x" << cols + 2 << endl;
 	count_ga = new int[size];
 	sent_position_row = 0;
 	if (rank == 0) 
@@ -238,15 +216,10 @@ int main(int argc, char**argv)
 			count_ga[i] = (count_sc[i] / (cols + 2) - 2)*cols;
 			displs_ga[i] = sent_position_row;
 			sent_position_row += count_ga[i];
-			/*cout <<i <<" count sc " << count_sc[i] << endl;
-			cout <<i <<" count ga " << count_ga[i] << endl;
-			cout <<i<< " displs " << displs_ga[i] << endl;*/
 		}
 	}
 	MPI_Bcast(count_ga, size, MPI_INT, 0, MPI_COMM_WORLD);
-	//MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Gatherv(local_res, count_ga[rank], MPI_UNSIGNED_CHAR, res_pp.data, count_ga, displs_ga, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-	//MPI_Barrier(MPI_COMM_WORLD);
 	finish_pp = MPI_Wtime();
 	if (rank == 0) {
 		namedWindow("Image", WINDOW_NORMAL);
@@ -257,13 +230,14 @@ int main(int argc, char**argv)
 		imshow("copy", copy);
 		imshow("res linear", res_linear);
 		imshow("res pp", res_pp);
+		cout << "dublicate time " << finish_duplicate - start_duplicate << endl;
+		cout << "image " << image.rows <<"x"<< image.cols << endl;
+		cout << "linear time " << finish_linear - start_linear + (finish_duplicate - start_duplicate) << endl;
+		cout << "pp time " << finish_pp - start_pp + (finish_duplicate - start_duplicate) << endl;
 		if (CheckData(res_linear.data, res_pp.data, image.rows, image.cols))
 			cout << "The algorithm is correct." << endl;
 		else
 			cout << "The algorithm isn't correct." << endl;
-		cout << "dublicate time " << finish_duplicate - start_duplicate << endl;
-		cout << "linear time " << finish_linear - start_linear << endl;
-		cout << "pp time " << finish_pp - start_pp << endl;
 		waitKey(); 
 		data_pp = nullptr;
 		data_linear = nullptr;
