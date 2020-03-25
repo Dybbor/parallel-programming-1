@@ -64,7 +64,6 @@ int Clamp(int num)
 }
 cv::Mat duplicateBorder(cv::Mat image)
 {
-
 	cv::Mat new_image(image.rows + 2, image.cols + 2, CV_8UC1);
 	new_image.at<uchar>(0, 0) = image.at<uchar>(0, 0);
 	new_image.at<uchar>(0, new_image.cols - 1) = image.at<uchar>(0, image.cols - 1);
