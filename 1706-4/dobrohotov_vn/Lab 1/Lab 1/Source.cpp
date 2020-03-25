@@ -33,12 +33,6 @@ double* createKernel(double* kernel, double sigma)
 }
 void PrintData(cv::Mat image)
 {
-	//for (int i = 0; i < image.rows; ++i) 
-	//{
-	//	for (int j = 0; j < image.cols; j++)
-	//		std::cout << static_cast<int>(image.at<uchar>(i,j)) <<"  ";
-	//	std::cout<<std::endl;
-	//}
 	std::cout << std::endl;
 	for (int i = 0; i < image.rows*image.cols; ++i)
 	{
@@ -103,10 +97,9 @@ int main(int argc, char** argv)
 	for (int i = 0; i < 3; ++i)
 		for (int j = 0; j < 3; ++j)
 			kernel[i][j] /= 16;
-	//double kernel[3][3] = { {1 / 16, 2 / 16, 1 / 16},{ 2 / 16, 4 / 16, 2 / 16},{1 / 16, 2 / 16, 1 / 16 } };
 	std::cout << argc << " " << argv[0] << " " << std::endl;
 	if (argc < 2)
-		path_to_image += "../Image/test.png";
+		path_to_image += "../Image/test1.jpg";
 	else
 		path_to_image += argv[1];
 	original = cv::imread(path_to_image);
