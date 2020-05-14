@@ -125,9 +125,7 @@ int main(int argc, char** argv)
     //Linear alghorithm
 
     auto begin = std::chrono::steady_clock::now();
-#pragma omp parallel
-    {
-    #pragma omp for
+#pragma omp parallel for num_threads(4)
         for (int x = 1; x < duplicate.cols - 1; ++x)
             for (int y = 1; y < duplicate.rows - 1; ++y)
             {
@@ -135,14 +133,13 @@ int main(int argc, char** argv)
                 for (int i = -1; i <= 1; ++i)
                     for (int j = -1; j <= 1; ++j)
                     {
-                        tmp += (static_cast <int>(duplicate.at<uchar>(y + i, x + i))) * kernel[1 + i][1 + j];
+                        tmp += (static_cast <int>(duplicate.at<uchar>(y + i, x + j))) * kernel[1 + i][1 + j];
                     }
                 filter.at<uchar>(y - 1, x - 1) = (uchar)Clamp(tmp);
             }
-    }
     auto end = std::chrono::steady_clock::now();
     auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
-    std::cout << "The time: " << elapsed_ms.count() << " ms\n";
+    std::cout << "The time: " << elapsed_ms.count()/1000.0 << " s\n";
     cv::imshow("Original", original);
     cv::imshow("Duplicate", duplicate);
     cv::imshow("Filter", filter);
