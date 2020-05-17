@@ -120,7 +120,7 @@ int main(int argc, char** argv)
     int count_threads;
     double* kernel;
     if (argc < 2)
-        path_to_image += "../Image/test1.jpg";
+        path_to_image += "../Image/big.jpg";
     else
         path_to_image += argv[1];
     original = cv::imread(path_to_image);
@@ -129,10 +129,12 @@ int main(int argc, char** argv)
         return -1;
     }
     if (argc < 3)
-#pragma omp parallel 
     {
+    #pragma omp parallel
+        {
         #pragma omp master
-        count_threads = omp_get_num_threads();
+            count_threads = omp_get_num_threads();
+        }
     }
     else
     {  
