@@ -79,33 +79,28 @@ cv::Mat gaussSeq(const cv::Mat& image, const double*const kernel)
     return filter;
 }
 
-cv::Mat gaussOpenMP(const cv::Mat& image, const double*const kernel)
+cv::Mat gaussOpenMP(const cv::Mat& image, const double*const kernel, int count_threads)
 {
     cv::Mat filter = cv::Mat::zeros(image.rows - 2, image.cols - 2, CV_8UC1);
-    omp_set_num_threads(4);
-#pragma omp parallel for 
-    for (int y = 1; y < image.rows - 1; ++y)
+    omp_set_num_threads(count_threads);
+#pragma omp parallel 
+    {
+        #pragma omp for schedule(dynamic)  
         for (int x = 1; x < image.cols - 1; ++x)
         {
-            double tmp = 0;
-            for (int i = -1; i <= 1; ++i)
-                for (int j = -1; j <= 1; j++)
-                {
-                    tmp += image.at<uchar>(y + i, x + j) * kernel[i + j + 2 * (i + 2)];
-                }
-            filter.at<uchar>(y - 1, x - 1) = Clamp(static_cast<int>(tmp));
+            for (int y = 1; y < image.rows - 1; ++y)
+            {
+                double tmp = 0;
+                for (int i = -1; i <= 1; ++i)
+                    for (int j = -1; j <= 1; j++)
+                    {
+                        tmp += image.at<uchar>(y + i, x + j) * kernel[i + j + 2 * (i + 2)];
+                    }
+                filter.at<uchar>(y - 1, x - 1) = Clamp(static_cast<int>(tmp));
+            }
         }
+    }
     return filter;
-}
-
-bool checkImages(const cv::Mat& image1, const cv::Mat& image2)
-{
-    cv::Mat res;
-    cv::bitwise_xor(image1, image2, res); //2 equal pixel = 0, 2 different pixel = pixel
-    if (cv::countNonZero(res) > 0)
-        return false;
-    else
-        return true;
 }
 
 bool checkImages(const cv::Mat& image1, const cv::Mat& image2)
@@ -122,6 +117,7 @@ int main(int argc, char** argv)
 {
     std::string path_to_image;
     cv::Mat original, duplicate;
+    int count_threads;
     double* kernel;
     if (argc < 2)
         path_to_image += "../Image/test1.jpg";
@@ -131,6 +127,21 @@ int main(int argc, char** argv)
     if (original.empty()) {
         std::cout << "Error load image" << std::endl;
         return -1;
+    }
+    if (argc < 3)
+#pragma omp parallel 
+    {
+        #pragma omp master
+        count_threads = omp_get_num_threads();
+    }
+    else
+    {  
+        count_threads = atoi(argv[2]);
+        if (count_threads == 0)
+        {
+            std::cout << "Error input num threads" << std::endl;
+            return -2;
+        }
     }
     if (original.channels() > 1) {
         cv::cvtColor(original, original, cv::COLOR_BGR2GRAY);
@@ -148,10 +159,12 @@ int main(int argc, char** argv)
     //OpenMP
     cv::Mat filter_openMP;
     double start_openMP = omp_get_wtime();
-    filter_openMP = gaussOpenMP(duplicate, kernel);
+    filter_openMP = gaussOpenMP(duplicate, kernel, count_threads);
     double finish_openMP = omp_get_wtime();
+    
 
-    std::cout << "Check algorithms " << checkImages(filter_seq, filter_openMP) << std::endl;
+    std::cout <<"Threads "<< count_threads << std::endl;
+    std::cout << "Check algorithms openMP " << checkImages(filter_seq, filter_openMP) << std::endl;
     std::cout << "Time seq  " << finish_seq - start_seq << std::endl;
     std::cout << "Time openMP  " << finish_openMP - start_openMP << std::endl;
 
