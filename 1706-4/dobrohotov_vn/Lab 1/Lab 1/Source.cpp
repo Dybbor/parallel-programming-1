@@ -1,28 +1,17 @@
 #include <iostream>
 #include <string>
-#include <chrono>
 #include <omp.h>
-
 #include <opencv2/opencv.hpp>
 
-#define M_PI 3.14159265358979323846
+#define PI 3.14159265358979323846
 
-double* Kernel()
+double* createKernel(const double sigma)
 {
-    double kernel[9] = { 1,2,1,2,4,2,1,2,1 };
-    //normirovvka intensity
-    for (int i = 0; i < 9; ++i)
-        kernel[i] /= 16;
-    return  kernel;
-}
-double* createKernel(double* kernel, double sigma)
-{
+    double *kernel = new double[9];
     double sum = 0;
-    for (int i = -1; i <= 1; i++)
-    {
-        for (int j = -1; j <= 1; j++)
-        {
-            kernel[i + j + 2 * (i + 2)] = (double)(exp(-(i*i + j * j) / (sigma*sigma))) *(1 / (sigma*sqrt(2 * M_PI)));
+    for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            kernel[i + j + 2 * (i + 2)] = (exp(-(i * i + j * j) / (2 * sigma * sigma))) / (2 * PI*sigma*sigma);
             sum += kernel[i + j + 2 * (i + 2)];
         }
     }
@@ -33,29 +22,18 @@ double* createKernel(double* kernel, double sigma)
     }
     return kernel;
 }
-void PrintData(cv::Mat image)
+
+void printKernel(const double* const kernel)
 {
-    std::cout << std::endl;
-    for (int i = 0; i < image.rows*image.cols; ++i)
+    for (int i = -1; i <= 1; ++i)
     {
-        if (i % image.cols == 0 && i != 0)
-            std::cout << std::endl;
-        std::cout << static_cast<int>(image.data[i]) << "  ";
-    }
-}
-void PrintMat(cv::Mat image)
-{
-    for (int i = 0; i < image.rows; i++)
-    {
-        for (int j = 0; j < image.cols; j++)
-        {
-            std::cout << (int)image.at<uchar>(i, j) << "  ";
-        }
+        for (int j = -1; j <= 1; ++j)
+            std::cout << kernel[i + j + 2 * (i + 2)] << "  ";
         std::cout << std::endl;
     }
 }
 
-int Clamp(int num)
+int Clamp(const int num)
 {
     if (num > 255)
         return 255;
@@ -64,85 +42,123 @@ int Clamp(int num)
     return num;
 
 }
-cv::Mat duplicateBorder(cv::Mat image)
+
+cv::Mat duplicateBorder(const cv::Mat& image)
 {
     cv::Mat new_image(image.rows + 2, image.cols + 2, CV_8UC1);
     new_image.at<uchar>(0, 0) = image.at<uchar>(0, 0);
     new_image.at<uchar>(0, new_image.cols - 1) = image.at<uchar>(0, image.cols - 1);
     new_image.at<uchar>(new_image.rows - 1, 0) = image.at<uchar>(image.rows - 1, 0);
     new_image.at<uchar>(new_image.rows - 1, new_image.cols - 1) = image.at<uchar>(image.rows - 1, image.cols - 1);
-    for (int i = 0; i < image.cols; i++)
-    {
+    for (int i = 0; i < image.cols; i++) {
         new_image.at<uchar>(0, i + 1) = image.at<uchar>(0, i);
         new_image.at<uchar>(new_image.rows - 1, i + 1) = image.at<uchar>(image.rows - 1, i);
     }
-    for (int i = 0; i < image.rows; i++)
-    {
+    for (int i = 0; i < image.rows; i++) {
         new_image.at<uchar>(i + 1, 0) = image.at<uchar>(i, 0);
         new_image.at<uchar>(i + 1, new_image.cols - 1) = image.at<uchar>(i, image.cols - 1);
     }
-    for (int i = 0; i < image.rows; i++)
-        for (int j = 0; j < image.cols; j++)
-        {
-            new_image.at<uchar>(i + 1, j + 1) = image.at<uchar>(i, j);
-        }
+    image.copyTo(new_image(cv::Rect(1, 1, image.cols, image.rows)));
     return new_image;
+}
+
+cv::Mat gaussSeq(const cv::Mat& image, const double*const kernel)
+{
+    cv::Mat filter = cv::Mat::zeros(image.rows - 2, image.cols - 2, CV_8UC1);
+    for (int y = 1; y < image.rows - 1; ++y)
+        for (int x = 1; x < image.cols - 1; ++x)
+        {
+            double tmp = 0;
+            for (int i = -1; i <= 1; ++i)
+                for (int j = -1; j <= 1; j++)
+                {
+                    tmp += image.at<uchar>(y + i, x + j) * kernel[i + j + 2 * (i + 2)];
+                }
+            filter.at<uchar>(y - 1, x - 1) = Clamp(static_cast<int>(tmp));
+        }
+    return filter;
+}
+
+cv::Mat gaussOpenMP(const cv::Mat& image, const double*const kernel)
+{
+    cv::Mat filter = cv::Mat::zeros(image.rows - 2, image.cols - 2, CV_8UC1);
+    omp_set_num_threads(4);
+#pragma omp parallel for 
+    for (int y = 1; y < image.rows - 1; ++y)
+        for (int x = 1; x < image.cols - 1; ++x)
+        {
+            double tmp = 0;
+            for (int i = -1; i <= 1; ++i)
+                for (int j = -1; j <= 1; j++)
+                {
+                    tmp += image.at<uchar>(y + i, x + j) * kernel[i + j + 2 * (i + 2)];
+                }
+            filter.at<uchar>(y - 1, x - 1) = Clamp(static_cast<int>(tmp));
+        }
+    return filter;
+}
+
+bool checkImages(const cv::Mat& image1, const cv::Mat& image2)
+{
+    cv::Mat res;
+    cv::bitwise_xor(image1, image2, res); //2 equal pixel = 0, 2 different pixel = pixel
+    if (cv::countNonZero(res) > 0)
+        return false;
+    else
+        return true;
+}
+
+bool checkImages(const cv::Mat& image1, const cv::Mat& image2)
+{
+    cv::Mat res;
+    cv::bitwise_xor(image1, image2, res); //2 equal pixel = 0, 2 different pixel = pixel
+    if (cv::countNonZero(res) > 0)
+        return false;
+    else
+        return true;
 }
 
 int main(int argc, char** argv)
 {
-
     std::string path_to_image;
     cv::Mat original, duplicate;
-    double kernel[3][3] = { {1,2,1},{ 2,4,2},{1,2,1} };
-    for (int i = 0; i < 3; ++i)
-        for (int j = 0; j < 3; ++j)
-            kernel[i][j] /= 16;
-    std::cout << argc << " " << argv[0] << " " << std::endl;
+    double* kernel;
     if (argc < 2)
-        path_to_image += "../Image/big.jpg";
+        path_to_image += "../Image/test1.jpg";
     else
         path_to_image += argv[1];
     original = cv::imread(path_to_image);
-    if (!original.data)
-    {
+    if (original.empty()) {
         std::cout << "Error load image" << std::endl;
         return -1;
     }
-    if (original.channels() > 1)
-    {
+    if (original.channels() > 1) {
         cv::cvtColor(original, original, cv::COLOR_BGR2GRAY);
         std::cout << "image to grey color" << std::endl;
     }
-    cv::Mat  filter(original.rows, original.cols, CV_8UC1);
-    for (int i = 0; i < filter.rows; ++i)
-        for (int j = 0; j < filter.rows; ++j)
-            filter.at<uchar>(i, j) = 0;
-    namedWindow("Original", cv::WINDOW_NORMAL);
-    namedWindow("Duplicate", cv::WINDOW_NORMAL);
-    namedWindow("Filter", cv::WINDOW_NORMAL);
     duplicate = duplicateBorder(original);
-    //Linear alghorithm
+    kernel = createKernel(0.85);
 
-    auto begin = std::chrono::steady_clock::now();
-#pragma omp parallel for num_threads(4)
-        for (int x = 1; x < duplicate.cols - 1; ++x)
-            for (int y = 1; y < duplicate.rows - 1; ++y)
-            {
-                int tmp = 0;
-                for (int i = -1; i <= 1; ++i)
-                    for (int j = -1; j <= 1; ++j)
-                    {
-                        tmp += (static_cast <int>(duplicate.at<uchar>(y + i, x + j))) * kernel[1 + i][1 + j];
-                    }
-                filter.at<uchar>(y - 1, x - 1) = (uchar)Clamp(tmp);
-            }
-    auto end = std::chrono::steady_clock::now();
-    auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
-    std::cout << "The time: " << elapsed_ms.count()/1000.0 << " s\n";
+    //Linear algorithm
+    cv::Mat filter_seq;
+    double start_seq = omp_get_wtime();
+    filter_seq = gaussSeq(duplicate, kernel);
+    double finish_seq = omp_get_wtime();
+
+    //OpenMP
+    cv::Mat filter_openMP;
+    double start_openMP = omp_get_wtime();
+    filter_openMP = gaussOpenMP(duplicate, kernel);
+    double finish_openMP = omp_get_wtime();
+
+    std::cout << "Check algorithms " << checkImages(filter_seq, filter_openMP) << std::endl;
+    std::cout << "Time seq  " << finish_seq - start_seq << std::endl;
+    std::cout << "Time openMP  " << finish_openMP - start_openMP << std::endl;
+
+    cv::namedWindow("Original", cv::WINDOW_NORMAL);
+    cv::namedWindow("Filter", cv::WINDOW_NORMAL);
     cv::imshow("Original", original);
-    cv::imshow("Duplicate", duplicate);
-    cv::imshow("Filter", filter);
+    cv::imshow("Filter", filter_openMP);
     cv::waitKey();
     return 0;
 }
