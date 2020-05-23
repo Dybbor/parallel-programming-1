@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
-
+#include <vector>
+#include <chrono>
+#include <thread>
 #include <opencv2/opencv.hpp>
 
 #define PI 3.14159265358979323846
@@ -79,6 +81,59 @@ cv::Mat gaussSeq(const cv::Mat& image, const double*const kernel)
     return filter;
 }
 
+void gaussForThread(const cv::Mat& src, cv::Mat& dst ,const double* kernel, int start, int finish)
+{
+    for (int x = start + 1; x < finish; ++x)
+        for (int y = 1; y < src.rows - 1; ++y)
+        {
+            double tmp = 0;
+            for (int i = -1; i <= 1; ++i)
+                for (int j = -1; j <= 1; j++)
+                {
+                    tmp += src.at<uchar>(y + i, x + j) * kernel[i + j + 2 * (i + 2)];
+                }
+            dst.at<uchar>(y - 1, x - 1) = Clamp(static_cast<int>(tmp));
+        }
+}
+
+cv::Mat gaussThread(const cv::Mat& image, const double*const kernel,const int num_threads)
+{
+    cv::Mat filter = cv::Mat::zeros(image.rows - 2, image.cols - 2, CV_8UC1);
+    std::vector<std::thread> thr(num_threads);
+    std::vector<int> block(num_threads, filter.cols / num_threads);
+    int left = filter.cols % num_threads;
+    if (left > 0)
+    {
+        int i = 0;
+        while (left != 0)
+        {
+            block[i]++;
+            left--;
+        }
+    }
+    int step = 0;
+    for (int i = 0; i < num_threads; ++i) 
+    {
+        thr[i] = std::thread(gaussForThread, std::cref(image), std::ref(filter), std::cref(kernel), step, step + block[i]+1);
+        step += block[i];  
+    }
+    for (int i = 0; i < num_threads; ++i)
+    {
+        thr[i].join();
+    }
+    return filter;
+}
+
+bool checkImages(const cv::Mat& image1, const cv::Mat& image2)
+{
+    cv::Mat res;
+    cv::bitwise_xor(image1, image2, res); //2 equal pixel = 0, 2 different pixel = pixel
+    if (cv::countNonZero(res) > 0)
+        return false;
+    else
+        return true;
+}
+
 int main(int argc, char** argv)
 {
 	std::string path_to_image;
@@ -99,13 +154,25 @@ int main(int argc, char** argv)
 	}
     duplicate = duplicateBorder(original);
     kernel = createKernel(0.85);
-    std::cout << "kernel" << std::endl;
-    printKernel(kernel);
-    cv::Mat filter = gaussSeq(duplicate, kernel);
+
+
+    //Linear
+    auto begin_seq = std::chrono::high_resolution_clock::now();
+    cv::Mat filter_seq = gaussSeq(duplicate, kernel);
+    auto end_seq = std::chrono::high_resolution_clock::now();
+
+    //std::threads
+    auto begin_threads = std::chrono::high_resolution_clock::now();
+    cv::Mat filter_thread = gaussThread(duplicate, kernel, 4);
+    auto end_threads = std::chrono::high_resolution_clock::now();
+
+    std::cout <<"Check  "<< checkImages(filter_seq, filter_thread) << std::endl;
+    std::cout << "Time seq " << std::chrono::duration<float>(end_seq - begin_seq).count() << std::endl;
+    std::cout << "Time threads " << std::chrono::duration<float>(end_threads - begin_threads).count() << std::endl;
     cv::namedWindow("Original", cv::WINDOW_NORMAL);
     cv::namedWindow("Filter", cv::WINDOW_NORMAL);
     cv::imshow("Original", original);
-    cv::imshow("Filter", filter);
+    cv::imshow("Filter", filter_thread);
     cv::waitKey();
 	return 0;
 }
