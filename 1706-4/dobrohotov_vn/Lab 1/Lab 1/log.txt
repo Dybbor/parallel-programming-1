@@ -1,0 +1,300 @@
+###################################################################################
+Pass 1
+Threads: 1
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.52958
+Time openMP:  1.02804
+Time TBB:  1.32974
+Time std::thread:  1.3788
+###################################################################################
+Pass 2
+Threads: 1
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.511292
+Time openMP:  1.12547
+Time TBB:  0.943037
+Time std::thread:  1.07531
+###################################################################################
+Pass 3
+Threads: 1
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.514808
+Time openMP:  0.97348
+Time TBB:  1.08482
+Time std::thread:  0.892888
+###################################################################################
+Pass 4
+Threads: 1
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.49672
+Time openMP:  0.865311
+Time TBB:  0.856607
+Time std::thread:  0.873461
+###################################################################################
+Pass 5
+Threads: 1
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.505224
+Time openMP:  0.851998
+Time TBB:  0.863955
+Time std::thread:  0.837901
+###################################################################################
+Pass 1
+Threads: 2
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.495779
+Time openMP:  0.560421
+Time TBB:  0.745213
+Time std::thread:  0.710661
+###################################################################################
+Pass 2
+Threads: 2
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.507214
+Time openMP:  0.516136
+Time TBB:  0.710922
+Time std::thread:  0.712008
+###################################################################################
+Pass 3
+Threads: 2
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.496441
+Time openMP:  0.516115
+Time TBB:  0.7879
+Time std::thread:  0.692751
+###################################################################################
+Pass 4
+Threads: 2
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.506146
+Time openMP:  0.589938
+Time TBB:  0.743745
+Time std::thread:  0.726903
+###################################################################################
+Pass 5
+Threads: 2
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.504495
+Time openMP:  0.503212
+Time TBB:  0.77692
+Time std::thread:  0.696406
+###################################################################################
+Pass 1
+Threads: 4
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.504092
+Time openMP:  0.411139
+Time TBB:  0.938884
+Time std::thread:  0.905947
+###################################################################################
+Pass 2
+Threads: 4
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.500026
+Time openMP:  0.412503
+Time TBB:  0.934565
+Time std::thread:  0.888809
+###################################################################################
+Pass 3
+Threads: 4
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.502778
+Time openMP:  0.4081
+Time TBB:  0.948423
+Time std::thread:  0.907477
+###################################################################################
+Pass 4
+Threads: 4
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.493647
+Time openMP:  0.404654
+Time TBB:  0.943772
+Time std::thread:  0.908946
+###################################################################################
+Pass 5
+Threads: 4
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.507183
+Time openMP:  0.405142
+Time TBB:  0.93761
+Time std::thread:  0.914234
+###################################################################################
+Pass 1
+Threads: 6
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.501295
+Time openMP:  0.403996
+Time TBB:  0.93336
+Time std::thread:  0.930511
+###################################################################################
+Pass 2
+Threads: 6
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.506837
+Time openMP:  0.431939
+Time TBB:  0.919453
+Time std::thread:  0.955471
+###################################################################################
+Pass 3
+Threads: 6
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.5896
+Time openMP:  0.471194
+Time TBB:  1.00568
+Time std::thread:  0.963225
+###################################################################################
+Pass 4
+Threads: 6
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.505798
+Time openMP:  0.407289
+Time TBB:  0.948365
+Time std::thread:  0.932339
+###################################################################################
+Pass 5
+Threads: 6
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.510413
+Time openMP:  0.405998
+Time TBB:  0.931863
+Time std::thread:  0.925365
+###################################################################################
+Pass 1
+Threads: 8
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.507542
+Time openMP:  0.411237
+Time TBB:  0.958434
+Time std::thread:  0.921649
+###################################################################################
+Pass 2
+Threads: 8
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.511978
+Time openMP:  0.411158
+Time TBB:  0.938629
+Time std::thread:  0.907852
+###################################################################################
+Pass 3
+Threads: 8
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.501138
+Time openMP:  0.41828
+Time TBB:  0.957821
+Time std::thread:  0.917353
+###################################################################################
+Pass 4
+Threads: 8
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.504934
+Time openMP:  0.421082
+Time TBB:  0.932269
+Time std::thread:  0.923041
+###################################################################################
+Pass 5
+Threads: 8
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.497032
+Time openMP:  0.511847
+Time TBB:  0.9187
+Time std::thread:  0.922639
+###################################################################################
+Pass 1
+Threads: 16
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.510076
+Time openMP:  0.418089
+Time TBB:  0.966947
+Time std::thread:  0.933752
+###################################################################################
+Pass 2
+Threads: 16
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.502435
+Time openMP:  0.418434
+Time TBB:  0.963861
+Time std::thread:  0.922795
+###################################################################################
+Pass 3
+Threads: 16
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.504265
+Time openMP:  0.418478
+Time TBB:  0.96518
+Time std::thread:  0.926933
+###################################################################################
+Pass 4
+Threads: 16
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.502811
+Time openMP:  0.411789
+Time TBB:  0.940372
+Time std::thread:  0.919128
+###################################################################################
+Pass 5
+Threads: 16
+Check algorithms openMP: 1
+Check algorithms TBB: 1
+Check algorithms std::thread: 1
+Time seq:  0.499135
+Time openMP:  0.404189
+Time TBB:  0.952047
+Time std::thread:  0.925845

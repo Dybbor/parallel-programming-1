@@ -1,6 +1,9 @@
 #include <iostream>
 #include <string>
+#include <vector>
+#include <fstream>
 #include <omp.h>
+#include <thread>
 #include <opencv2/opencv.hpp>
 #include <tbb/task_scheduler_init.h>
 #include <tbb/blocked_range.h>
@@ -135,6 +138,48 @@ cv::Mat gaussTBB(const cv::Mat& image, const double* kernel, const int count_thr
     return filter;
 }
 
+void gaussForThread(const cv::Mat& src, cv::Mat& dst, const double* kernel, int start, int finish)
+{
+    for (int x = start + 1; x < finish; ++x)
+        for (int y = 1; y < src.rows - 1; ++y)
+        {
+            double tmp = 0;
+            for (int i = -1; i <= 1; ++i)
+                for (int j = -1; j <= 1; j++)
+                {
+                    tmp += src.at<uchar>(y + i, x + j) * kernel[i + j + 2 * (i + 2)];
+                }
+            dst.at<uchar>(y - 1, x - 1) = Clamp(static_cast<int>(tmp));
+        }
+}
+
+cv::Mat gaussThread(const cv::Mat& image, const double*const kernel, const int num_threads)
+{
+    cv::Mat filter = cv::Mat::zeros(image.rows - 2, image.cols - 2, CV_8UC1);
+    std::vector<std::thread> thr(num_threads);
+    std::vector<int> block(num_threads, filter.cols / num_threads);
+    int left = filter.cols % num_threads;
+    if (left > 0)
+    {
+        int i = 0;
+        while (left != 0)
+        {
+            block[i]++;
+            left--;
+        }
+    }
+    int step = 0;
+    for (int i = 0; i < num_threads; ++i)
+    {
+        thr[i] = std::thread(gaussForThread, std::cref(image), std::ref(filter), std::cref(kernel), step, step + block[i] + 1);
+        step += block[i];
+    }
+    for (int i = 0; i < num_threads; ++i)
+    {
+        thr[i].join();
+    }
+    return filter;
+}
 
 bool checkImages(const cv::Mat& image1, const cv::Mat& image2)
 {
@@ -181,34 +226,69 @@ int main(int argc, char** argv)
     duplicate = duplicateBorder(original);
     kernel = createKernel(0.85);
 
-    //Linear algorithm
-    cv::Mat filter_seq;
-    tbb::tick_count start_seq = tbb::tick_count::now();
-    filter_seq = gaussSeq(duplicate, kernel);
-    tbb::tick_count finish_seq = tbb::tick_count::now();
+    std::ofstream out;
+    out.open("log.txt");
+    out.close();
+    int mas[6] = { 1, 2, 4, 6, 8, 16 };
+    for (int num_thread = 0; num_thread < 6; ++num_thread)
+        for (int count_pass = 1; count_pass < 6; ++count_pass)
+        {
+            count_threads = mas[num_thread];
+            //Linear algorithm
+            cv::Mat filter_seq;
+            tbb::tick_count start_seq = tbb::tick_count::now();
+            filter_seq = gaussSeq(duplicate, kernel);
+            tbb::tick_count finish_seq = tbb::tick_count::now();
 
-    //OpenMP
-    cv::Mat filter_openMP;
-    tbb::tick_count start_openMP = tbb::tick_count::now();
-    filter_openMP = gaussOpenMP(duplicate, kernel, count_threads);
-    tbb::tick_count finish_openMP = tbb::tick_count::now();
+            //OpenMP
+            cv::Mat filter_openMP;
+            tbb::tick_count start_openMP = tbb::tick_count::now();
+            filter_openMP = gaussOpenMP(duplicate, kernel, count_threads);
+            tbb::tick_count finish_openMP = tbb::tick_count::now();
 
-    //TBB
-    cv::Mat filter_TBB;
-    tbb::tick_count start_TBB = tbb::tick_count::now();
-    filter_TBB = gaussTBB(duplicate, kernel, count_threads);
-    tbb::tick_count  finish_TBB = tbb::tick_count::now();
+            //TBB
+            cv::Mat filter_TBB;
+            tbb::tick_count start_TBB = tbb::tick_count::now();
+            filter_TBB = gaussTBB(duplicate, kernel, count_threads);
+            tbb::tick_count  finish_TBB = tbb::tick_count::now();
 
-    std::cout << "Threads: " << count_threads << std::endl;
+            //std::threads
+            cv::Mat filter_thread;
+            tbb::tick_count start_thread = tbb::tick_count::now();
+            filter_thread = gaussThread(duplicate, kernel, count_threads);
+            tbb::tick_count finish_thread = tbb::tick_count::now();
+
+            //write in file
+            std::ofstream out;
+            out.open("log.txt", std::ios::app);
+            if (out.is_open())
+            {
+                out << "###################################################################################" << std::endl;
+                out << "Pass " << count_pass << std::endl;
+                out << "Threads: " << count_threads << std::endl;
+                out << "Check algorithms openMP: " << checkImages(filter_seq, filter_openMP) << std::endl;
+                out << "Check algorithms TBB: " << checkImages(filter_seq, filter_TBB) << std::endl;
+                out << "Check algorithms std::thread: " << checkImages(filter_seq, filter_thread) << std::endl;
+                out << "Time seq:  " << (finish_seq - start_seq).seconds() << std::endl;
+                out << "Time openMP:  " << (finish_openMP - start_openMP).seconds() << std::endl;
+                out << "Time TBB:  " << (finish_TBB - start_TBB).seconds() << std::endl;
+                out << "Time std::thread:  " << (finish_thread - start_thread).seconds() << std::endl;
+            }
+            out.close();
+        }
+
+ /*   std::cout << "Threads: " << count_threads << std::endl;
     std::cout << "Check algorithms openMP: " << checkImages(filter_seq, filter_openMP) << std::endl;
     std::cout << "Check algorithms TBB: " << checkImages(filter_seq, filter_TBB) << std::endl;
+    std::cout << "Check algorithms std::thread: " << checkImages(filter_seq, filter_thread) << std::endl;
     std::cout << "Time seq:  " << (finish_seq - start_seq).seconds() << std::endl;
     std::cout << "Time openMP:  " << (finish_openMP - start_openMP).seconds() << std::endl;
     std::cout << "Time TBB:  " << (finish_TBB - start_TBB).seconds() << std::endl;
-    cv::namedWindow("Original", cv::WINDOW_NORMAL);
+    std::cout << "Time std::thread:  " << (finish_thread - start_thread).seconds() << std::endl;*/
+   /* cv::namedWindow("Original", cv::WINDOW_NORMAL);
     cv::namedWindow("Filter", cv::WINDOW_NORMAL);
     cv::imshow("Original", original);
     cv::imshow("Filter", filter_openMP);
-    cv::waitKey();
+    cv::waitKey();*/
     return 0;
 }
